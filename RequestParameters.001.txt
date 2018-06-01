@@ -1,0 +1,27 @@
+Coincidence Type : None or Satellite-Ground Validation Site
+Data File Format : HDF
+Data Type : 3B42
+Date Range : 20170530-03:00:00.000,20170604-03:00:00.000
+Geographic Range : -9.2004,-10.175,-35.1123,-36.3208
+A date separating IP data : 20180418-00:00:00
+Create copy of PPS products in the archive : No
+Perform Geographic Filter : Yes
+Perform Geographic Subset : Yes
+Create links to PPS products in the archive : No
+Stand Alone Request : Yes
+Perform Parameter Subset : Yes
+Notify Job Name : Order_notify_thaina_lessa_001
+Product Suffix (subsetId) : SP
+Product Type : Product
+Push a DN to remote system : No
+Indication if order will handle reprocessed data : No
+Product Parameter : 3B42:Grid:precipitation
+Indicates what scripts to build : Python
+Indicates if scripts are included in email : Yes
+Indicates if user has ssh/sftp access : No
+The tar file containing the TK code : requestedCode_001_3B42SP_hdf4.tar
+Temporal Type: Date Range or Orbit Range : Date Range
+Request TKIO Read/Write Code : Yes
+TKIO Code Language : C
+Use a Data Receipt? : No
+Request ID : 001
