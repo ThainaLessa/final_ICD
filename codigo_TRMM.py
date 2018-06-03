@@ -4,6 +4,10 @@ import numpy as np
 from pyhdf.SD import SD, SDC
 from random import choice
 
+import matplotlib.pylab as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+
 #https://www.youtube.com/watch?v=FdGploQo4Ko
 def extrair_arquivos(arquivo, pasta_gzs, pasta_salvar):
     diret = pasta_gzs + arquivo
@@ -76,6 +80,28 @@ def tabela(dados, lat, lon, metrica):
         met = 'Máximo    |'
     print(met+media.center(9)+'|'+q1.center(14)+'|'+q3.center(14))
 
+def criar_mapa(dados, lats, longs):
+    #https://github.com/SciTools/cartopy
+    fig = plt.figure(figsize=(20, 10))
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
+
+    ax.set_extent([-38, -33, -11, -8.5], crs=ccrs.PlateCarree())
+    
+    ax.add_feature(cfeature.LAND)
+    ax.add_feature(cfeature.OCEAN)
+    ax.add_feature(cfeature.COASTLINE)
+
+    m = ax.pcolormesh(longs,\
+                    lats,\
+                    dados,\
+                    vmin=0,\
+                    vmax=np.amax(dados))
+
+    cbar = plt.colorbar(m,ax=ax)
+    cbar.set_label('mm')
+    plt.title('Precipitação')
+    plt.show()
+
 if __name__ == "__main__":
     #Criar uma lista com todos os aquivos .gz
     pasta_arqsgz = './Arquivos NASA/'
@@ -104,3 +130,5 @@ if __name__ == "__main__":
             print(10*' '+'|  Média  |  1º quartil  |  3º quartil')
             for metrica in list(METRICAS.keys()):
                 tabela(df, lat, lon, metrica)
+
+    
