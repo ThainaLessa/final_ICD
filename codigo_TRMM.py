@@ -7,6 +7,7 @@ from random import choice
 import matplotlib.pylab as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import matplotlib.ticker as mticker
 
 #https://www.youtube.com/watch?v=FdGploQo4Ko
 def extrair_arquivos(arquivo, pasta_gzs, pasta_salvar):
@@ -39,16 +40,18 @@ def ler_hdf_precipitacao(arquivo, pasta):
 
 def criar_serie(dados, lats, longs):
     #Criar série de dados estimados por pixel, em um DataFrame
-    df = pd.DataFrame(columns=longs, index=lats)
+    df_series = pd.DataFrame(columns=longs, index=lats)
+    df_acum = pd.DataFrame(columns=longs, index=lats)
 
     for nlat, lat in enumerate(lats):
         for nlon, lon in enumerate(longs):
             serie = []
             for precip in dados_precip:
                 serie.append(precip[nlat][nlon])
-            df[lon][lat] = serie
+            df_series[lon][lat] = serie
+            df_acum[lon][lat] = np.sum(serie)
     
-    return df
+    return df_series, df_acum
 
 #Funções para Bootstrap
 METRICAS = {'max': max, 'acum': sum}
@@ -69,7 +72,7 @@ def boots(dados_estimados, metrica):
         res.append(METRICAS[metrica](amostra))
     return intervalo_confiança(res)
 
-def tabela(dados, lat, lon, metrica):
+def tabela_e_media(dados, lat, lon, metrica):
     calc = boots(dados[lon][lat], metrica)
     media = '%.2f'%calc['média']
     q1 = '%.2f'%calc['q1']
@@ -79,18 +82,19 @@ def tabela(dados, lat, lon, metrica):
     else:
         met = 'Máximo    |'
     print(met+media.center(9)+'|'+q1.center(14)+'|'+q3.center(14))
+    return calc['média']
 
-def criar_mapa(dados, lats, longs):
+def criar_mapa(dados, lats, longs, titulo):
     #https://github.com/SciTools/cartopy
-    fig = plt.figure(figsize=(20, 10))
+    fig = plt.figure(figsize=(10, 5))
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
 
-    ax.set_extent([-38, -33, -11, -8.5], crs=ccrs.PlateCarree())
+    ax.set_extent([-37.1, -33.9, -11, -8], crs=ccrs.PlateCarree())
     
     ax.add_feature(cfeature.LAND)
     ax.add_feature(cfeature.OCEAN)
     ax.add_feature(cfeature.COASTLINE)
-
+    
     m = ax.pcolormesh(longs,\
                     lats,\
                     dados,\
@@ -99,8 +103,14 @@ def criar_mapa(dados, lats, longs):
 
     cbar = plt.colorbar(m,ax=ax)
     cbar.set_label('mm')
-    plt.title('Precipitação')
-    plt.show()
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True, alpha=0.35)
+    gl.xlabels_top = False
+    gl.ylabels_right = False
+    gl.xlocator = mticker.FixedLocator([-34, -35, -36, -37])
+
+    plt.title('Precipitação {}'.format(titulo))
+    plt.savefig('{}.jpg'.format(titulo))
 
 if __name__ == "__main__":
     #Criar uma lista com todos os aquivos .gz
@@ -121,14 +131,25 @@ if __name__ == "__main__":
     latitudes = np.arange(-10.25, -9, 0.25)
     longitudes = np.arange(-36.5, -35, 0.25)
 
-    df = criar_serie(dados_precip, latitudes, longitudes)
-    
-    #Imprimir média e intervalo de confiança de reamostragem por Bootstrap
-    for lat in list(df.index):
-        for lon in list(df.columns):
+    series, acum = criar_serie(dados_precip, latitudes, longitudes)
+
+    df_acum = pd.DataFrame(columns=longitudes, index=latitudes)
+    #Pegar médias obtidas com bootstrap e imprimir média e intervalo de confiança de reamostragem por Bootstrap
+    for lat in list(series.index):
+        for lon in list(series.columns):
             print(13*' '+'Latitude: {}; Longitude: {}'.format(lat,lon),'\n',10*' '+38*'-')
             print(10*' '+'|  Média  |  1º quartil  |  3º quartil')
             for metrica in list(METRICAS.keys()):
-                tabela(df, lat, lon, metrica)
-
+                if metrica == 'acum':
+                    df_acum[lon][lat] = tabela_e_media(series, lat, lon, metrica)
+                else:
+                    tabela_e_media(series, lat, lon, metrica)
     
+    for i in list(acum.columns):
+        acum[i] = pd.to_numeric(acum[i], errors='coerce')
+        df_acum[i] = pd.to_numeric(df_acum[i], errors='coerce')
+
+    latitudes = np.arange(-10.25, -8.75, 0.25)
+    longitudes = np.arange(-36.5, -34.75, 0.25)
+    criar_mapa(acum.values, latitudes, longitudes, 'acumulada TRMM')
+    criar_mapa(df_acum.values, latitudes, longitudes, 'acumulada - Bootstrap')
